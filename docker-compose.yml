@@ -14,6 +14,10 @@ services:
   backend:
     build: ./backend
     env_file: .env
+    environment:
+      MEDIA_DIR: /app/media
+    volumes:
+      - studio_media:/app/media
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -31,3 +35,4 @@ services:
       - backend
 volumes:
   studio_db:
+  studio_media:
