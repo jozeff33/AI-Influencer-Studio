@@ -61,7 +61,7 @@ class MediaAsset(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 Base.metadata.create_all(engine)  # Prototype only; use Alembic migrations for production.
-app = FastAPI(title="AI Influencer Studio", version="0.2.0")
+app = FastAPI(title="AI Influencer Studio", version="0.4.0")
 app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000").split(","), allow_methods=["GET","POST"], allow_headers=["*"])
 
 def db():
@@ -85,7 +85,7 @@ class ProjectIn(BaseModel):
 def char_out(c): return {"id":c.id,"name":c.name,"persona":c.persona,"language":c.language,"created_at":c.created_at.isoformat()}
 def project_out(q): return {"id":q.id,"character_id":q.character_id,"title":q.title,"script":q.script,"status":q.status}
 @app.get("/health")
-def health(): return {"status":"ok","version":"0.2.0"}
+def health(): return {"status":"ok","version":"0.4.0"}
 @app.get("/characters")
 def list_characters(org: str=Depends(tenant), session: Session=Depends(db)):
     return [char_out(c) for c in session.scalars(select(Character).where(Character.organization_id==org).order_by(Character.created_at.desc())).all()]
@@ -218,6 +218,8 @@ def generate_image(character_id: str, data: SceneIn, org: str = Depends(tenant),
     c = checked_character(session, org, character_id)
     ident = latest_identity(session, org, character_id)
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if os.getenv("ENABLE_PAID_GENERATION", "false").lower() != "true":
+        raise HTTPException(503, "Paid generation is disabled; explicitly enable it before making requests")
     if not api_key:
         raise HTTPException(503, "Image provider not configured: add OPENAI_API_KEY to .env")
     prompt = make_prompt(c, ident, data.scene)
@@ -232,3 +234,9 @@ def generate_image(character_id: str, data: SceneIn, org: str = Depends(tenant),
         # Never echo provider responses or credentials into user-visible errors.
         raise HTTPException(502, "Image provider request failed; inspect server logs") from exc
     return save_asset(result, "generated", c, ident, data.scene, session)
+
+# Imported last to keep existing V0.1/V0.2 endpoints and models stable.
+from . import production  # noqa: F401
+
+# V0.4 additive story engine and serialized reels.
+from . import story  # noqa: F401

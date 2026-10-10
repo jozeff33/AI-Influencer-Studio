@@ -23,6 +23,20 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  # Opt-in background scheduler. Starts ONLY with --profile autopilot.
+  story_worker:
+    profiles: ["autopilot"]
+    build: ./backend
+    command: ["python", "-m", "app.story_worker"]
+    env_file: .env
+    environment:
+      MEDIA_DIR: /app/media
+    volumes:
+      - studio_media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
   frontend:
     build:
       context: ./frontend

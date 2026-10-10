@@ -7,4 +7,17 @@ node_modules/
 media/
 *.local
 
-/backups/
+# V0.3 local-only state & backups
+*.sql
+*.dump
+*.tgz
+*.tsbuildinfo
+backup_media*/
+media/
+*.mp4
+*.log
+backups/
+
+# local saved artifacts
+*.zip
+*.sqlite3
